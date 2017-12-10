@@ -1,4 +1,4 @@
-from utils.readers import *
+from utils.csv_readers import *
 from utils.timer import Timer
 from utils.transcritps import *
 from components.features import *
@@ -9,13 +9,16 @@ from components.oracles import SequentialStaticOracle
 
 # Paths ####################################################
 data_in = [
-    ("../data/friends-s1.feats.sm.json", range(1, 6), [7]),
+    ("../data/friends-s1.feats.sm.json", range(1, ), [7]),
     # ("../data/friends-s1.feats.json", range(1, 20), range(20, 22)),
     # ("../data/friends-s2.feats.json", filter(lambda x: x != 3, range(1, 22)), [22])
 ]
 
-word2gender_path = "../data/gender.data"
-word2vec_path = "../data/wiki_nyt_w2v_50d.bin"
+data_in = [("json/friends.train.season_1.scene_delim.bio.json",range(1,20),range(20,22)),("json/friends.train.season_2.scene_delim.bio.json",range(1,20),range(20,22))]
+word2gender_path = "data/gender.data"
+#word2vec_path = "../data/wiki_nyt_w2v_50d.bin"
+#word2vec_path = "/data_500_II/tensorflow_parallel_sentence/parSentExtract/notebooks/GoogleNews-vectors-negative300.bin"
+word2vec_path = "/data_500_II/tensorflow_parallel_sentence/glove.6B.50d.w2vformat.txt"
 
 # Parameters ##############################################
 nb_filters = 80
@@ -27,7 +30,7 @@ eval_every = 10
 batch_size = 128
 
 utid = int(Timer.now()) % 1e6
-model_out = "../learned_models/mm-cnn.1+2r.f%d.d50.f1+2.%d.m" % (nb_filters, utid)
+model_out = "learned_models/mm-cnn.1+2r.f%d.d50.f1+2.%d.m" % (nb_filters, utid)
 
 nb_emb_feats = embdim = dftdim = None
 ###########################################################
@@ -38,14 +41,14 @@ def main():
 
     #### Loading word2vec
     timer.start('load_word2vec')
-    # word2vec = KeyedVectors.load_word2vec_format(word2vec_path, binary=True)
-    # print "Word2Vec data loaded w/ %d vocabularies of dimension %d - %.2fs" \
-    #       % (len(word2vec.vocab), word2vec.syn0.shape[1], timer.end('load_word2vec'))
+    word2vec = KeyedVectors.load_word2vec_format(word2vec_path)
+    print "Word2Vec data loaded w/ %d vocabularies of dimension %d - %.2fs" \
+           % (len(word2vec.vocab), word2vec.syn0.shape[1], timer.end('load_word2vec'))
 
-    # #### Loading gender data
-    # timer.start('load_word2gender')
-    # word2gender = GenderDataReader.load(word2gender_path, True, True)
-    # print "Gender data loaded w/ %d vocabularies - %.2fs\n" % (len(word2gender), timer.end('load_word2gender'))
+    #### Loading gender data
+    timer.start('load_word2gender')
+    word2gender = GenderDataReader.load(word2gender_path, True, True)
+    print "Gender data loaded w/ %d vocabularies - %.2fs\n" % (len(word2gender), timer.end('load_word2gender'))
 
     #### Loading transcripts
     timer.start('load_transcript')
@@ -53,8 +56,9 @@ def main():
     speakers, pos_tags, dep_labels, ner_tags = (set(), set(), set(), set())
     for d_in in data_in:
         with open(d_in[0], 'r') as f:
-            season, _, mentions = TranscriptJsonReader.read_season(f)
-
+            season, mentions, _ = TranscriptCSVReader.read_season(f)
+	    #print mentions,season
+	    
             speakers = speakers.union(TranscriptUtils.collect_speakers(season, False))
             pos_tags = pos_tags.union(TranscriptUtils.collect_pos_tags(season))
             dep_labels = dep_labels.union(TranscriptUtils.collect_dep_labels(season))
@@ -66,7 +70,7 @@ def main():
                 scene = m.tokens[0].parent_scene()
                 episode = scene.parent_episode()
                 scid, eid = scene.id, episode.id
-
+		
                 key = "e%dsc%d" % (eid, scid)
                 target = d_trn if eid in d_in[1] else d_dev if eid in d_in[2] else d_tst
                 if key not in target:
@@ -92,7 +96,7 @@ def main():
         m.id, m.m_prev, m.m_next = m_idx, m_all[m_idx - 1], m_all[m_idx + 1]
     m_extractor = MentionFeatureExtractor(word2vec, word2gender, speakers, pos_tags, dep_labels, ner_tags)
     for m in m_all:
-        m.embedding, m.feature = m_extractor.extract(m)
+	m.embedding, m.feature = m_extractor.extract(m)
     print "Vectorized and Extracted features from %d mentions. - %.2fs" % (len(m_all), timer.end('feature_extraction'))
 
     # Collection feature shape information

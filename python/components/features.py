@@ -58,15 +58,18 @@ class MentionPairFeatureExtractor(AbstractFeatureExtractor):
 ###########################################################
 def get_mention_metadata(mention):
     if mention.tokens:
+	#import pdb
+	#pdb.set_trace()
         h_token, fst_token, lst_token = get_head_token(mention), mention.tokens[0], mention.tokens[-1]
         utterance = fst_token.parent_utterance()
         scene = utterance.parent_scene()
         episode = scene.parent_episode()
-
+	#print utterance.utterances
         for st_idx, statement in enumerate(utterance.statements):
-            if h_token in statement and fst_token in statement and lst_token in statement:
-                return episode, scene, utterance, st_idx, statement.index(h_token), h_token, \
-                       statement.index(fst_token), fst_token, statement.index(lst_token), lst_token
+		#print "hi2"
+        	if h_token in statement and fst_token in statement and lst_token in statement:
+                	return episode, scene, utterance, st_idx, statement.index(h_token), h_token, \
+	                       statement.index(fst_token), fst_token, statement.index(lst_token), lst_token
 
 
 def get_head_token(mention):
@@ -92,8 +95,10 @@ class MentionFeatureExtractor(AbstractFeatureExtractor):
         self.ner_dim, self.ner2vec = ner_dim, dict([(ner, np.random.rand(ner_dim)) for ner in ners])
 
     def extract(self, mention):
-        _, _, curr_utterance, st_idx, th_idx, h_token, ts_idx, fst_token, te_idx, lst_token = get_mention_metadata(
-            mention)
+	if get_mention_metadata(mention):
+	        _, _, curr_utterance, st_idx, th_idx, h_token, ts_idx, fst_token, te_idx, lst_token = get_mention_metadata(mention)
+	else:
+		return
 
         tokens, curr_speaker = mention.tokens, curr_utterance.speaker
         prev1_utterance = curr_utterance.previous_utterance()
