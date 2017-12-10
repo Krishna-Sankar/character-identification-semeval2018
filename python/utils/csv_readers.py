@@ -28,7 +28,8 @@ class TranscriptCSVReader(object):
         raw_dict = defaultdict(dict)
 
         with codecs.open(conll_file,"r","utf-8") as ip:
-            for line in ip.readlines():
+            lines = ip.readlines()
+            for line_id,line in enumerate(lines):
                 if line.startswith("#begin document"):
                     m = p.search(line.strip())
                     if m:
@@ -59,7 +60,7 @@ class TranscriptCSVReader(object):
                 elif not line.startswith("#end"):
                     line_feats = line.split()
                     curr_speaker = line_feats[9] 
-                    if prev_speaker != curr_speaker and prev_speaker != "":
+                    if (prev_speaker != curr_speaker and prev_speaker != "") or lines[line_id+2].startswith("#end"):
                         utterance = {}
                         utterance["utterance_id"] = utterance_id
                         utterance["speaker"] = prev_speaker
@@ -69,7 +70,6 @@ class TranscriptCSVReader(object):
                         utterance["utterance_sentence_ner_tags"] = utterance_sentence_ner_tags
                         utterance["utterance_sentence_dep_labels"] = utterance_sentence_dep_labels
                         utterance["utterance_sentence_annotations"] = utterance_sentence_annotations
-                        
                         raw_dict["seasons"][season_id]["episodes"][episode_id]["scenes"][scene_id]["utterances"].append(utterance)
                         
                         utterance_id += 1
@@ -80,7 +80,9 @@ class TranscriptCSVReader(object):
                         utterance_sentence_dep_labels = [] #constitutency parse label - idx: 5
                         utterance_sentence_annotations = [] # entity id - idx: 11
                         sent_idx = 0
-                    
+
+
+
                     if len(tokenized_utterance_sentences) < sent_idx + 1:
                         tokenized_utterance_sentences.append([])
                     if len(lemmatized_utterance_sentences) < sent_idx + 1:
@@ -319,5 +321,5 @@ for file in os.listdir("../data/"):
     if "bio" in file and "scene_delim" in file and "conll" in file:
         print file
         json_file_name = TranscriptCSVReader.write_conll_to_json("../data/"+file)
-        data = TranscriptCSVReader.read_season(json_file_name)
+#        data = TranscriptCSVReader.read_season(json_file_name)
 
