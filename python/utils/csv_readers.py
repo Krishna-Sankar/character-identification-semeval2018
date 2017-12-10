@@ -115,9 +115,9 @@ class TranscriptCSVReader(object):
         utterance_mentions = list()
         statement_mentions = list()
 
-        raw_json = json.load(open(json_file))
+        raw_json = json.load(json_file)
 
-        episodes_json = raw_json["seasons"]["1"]["episodes"]
+        episodes_json = raw_json["episodes"]
         episode_ids = list(map(lambda x: int(x), episodes_json.keys()))
         prev_episode = None
         for eid in range(min(episode_ids), max(episode_ids)+1):
@@ -133,7 +133,7 @@ class TranscriptCSVReader(object):
                 prev_episode = curr_episode
             else:
                 prev_episode = None
-
+	
         return season, utterance_mentions, statement_mentions
     
 
@@ -220,7 +220,7 @@ class TranscriptCSVReader(object):
         #     statements.append(statement_nodes)
         #     self._parse_mention_nodes(statement_mentions, statement_nodes, statement_annotations[idx])
 
-        return Utterance(speaker, utterances, statements)
+        return Utterance(speaker, statements , utterances)
 
     def _parse_token_nodes(self, word_forms, pos_tags, ner_tags, dep_labels):
         nodes = list()
@@ -314,6 +314,7 @@ class GenderDataReader(object):
 
         return d
 
+'''
 import os
 for file in os.listdir("../data/"):
     if "bio" in file and "scene_delim" in file and "conll" in file:
@@ -321,3 +322,4 @@ for file in os.listdir("../data/"):
         json_file_name = TranscriptCSVReader.write_conll_to_json("../data/"+file)
         data = TranscriptCSVReader.read_season(json_file_name)
 
+'''

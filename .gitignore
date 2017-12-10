@@ -1,0 +1,7 @@
+# User defined
+*.pyc
+bin/
+res/
+data/
+learned_models/
+

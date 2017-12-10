@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import tensorflow as tf
+
 from utils.timer import Timer
 from keras import backend as K
 from sklearn.metrics import accuracy_score
@@ -11,8 +12,11 @@ from components.features import MentionPairFeatureExtractor
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers import Input, Reshape, Flatten, Dense, merge, Dropout
 
+K.set_image_dim_ordering('th')
 tf.logging.set_verbosity(tf.logging.WARN)
-tf.python.control_flow_ops = tf
+
+
+#tf.python.ops.control_flow_ops = control_flow_ops
 
 
 class MentionMentionCNN:
