@@ -12,7 +12,7 @@ from keras.layers import Input, Reshape, Flatten, Dense, Dropout, merge
 
 tf.logging.set_verbosity(tf.logging.ERROR)
 tf.python.control_flow_ops = tf
-
+K.set_image_dim_ordering('th')
 
 class EntityMentionGroupFeatCNNDecoder(object):
 
