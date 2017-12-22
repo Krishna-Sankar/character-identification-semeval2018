@@ -13,17 +13,33 @@ import json
 
 ###########################################################
 class TranscriptCSVReader(object):
+    
     @staticmethod
     def read_season(file):
         return TranscriptCSVReader()._read_season(file)
+
+    @staticmethod 
+    def write_conll_to_json(file,tv="friends"):
+        return TranscriptCSVReader()._write_conll_to_json(file,tv)
     
     @staticmethod 
-    def write_conll_to_json(file):
-        return TranscriptCSVReader()._write_conll_to_json(file)
+    def convert_conll_to_bio(file):
+        return TranscriptCSVReader()._convert_conll_to_bio(file)
     
-    def _write_conll_to_json(self, conll_file):
+    def _clean_unicode_errors(self,text):
+        text  = text.replace(u"\u2019","'")
+        text  = text.replace(u"\u2026","...")
+        text  = text.replace(u"\u201c",'"')
+        text  = text.replace(u"\u201d",'"')
+        text  = text.replace(u'\u2018',"'")
+        return text
 
-        p = re.compile("\(/friends-s(\d{2})e(\d{2})\); part (\d{3})")
+    def _write_conll_to_json(self, conll_file, tv="friends"):
+
+        if tv == "friends":
+            p = re.compile("\(/friends-s(\d{2})e(\d{2})\); part (\d{3})")
+        else:
+            p = re.compile("\(/bigbang/(\d{2})(\d{2})(\d{2})\); part (\d{3})")
         
         raw_dict = defaultdict(dict)
 
@@ -31,6 +47,7 @@ class TranscriptCSVReader(object):
             lines = ip.readlines()
             for line_id,line in enumerate(lines):
                 if line.startswith("#begin document"):
+                    line = self._clean_unicode_errors(line)
                     m = p.search(line.strip())
                     if m:
                         season_id,episode_id,scene_id =  int(m.group(1)),int(m.group(2)),int(m.group(3))
@@ -58,6 +75,7 @@ class TranscriptCSVReader(object):
                     sent_idx += 1
 
                 elif not line.startswith("#end"):
+                    line = self._clean_unicode_errors(line)
                     line_feats = line.split()
                     curr_speaker = line_feats[9] 
                     if (prev_speaker != curr_speaker and prev_speaker != "") or lines[line_id+2].startswith("#end"):
@@ -101,16 +119,53 @@ class TranscriptCSVReader(object):
                     utterance_sentence_pos_tags[sent_idx].append(line_feats[4])
                     utterance_sentence_ner_tags[sent_idx].append(line_feats[10])
                     utterance_sentence_dep_labels[sent_idx].append(line_feats[5])
-                    utterance_sentence_annotations[sent_idx].append(line_feats[12])
+                    try:
+                        utterance_sentence_annotations[sent_idx].append(line_feats[12])
+                    except:
+                        import pdb
+                        pdb.set_trace()
                     
                     prev_speaker = line_feats[9]
                     
 
         json_file_name = conll_file.replace(".conll",".json")
+        print raw_dict["seasons"].keys()
         with open(json_file_name,"w") as op:
-            json.dump(raw_dict, op, sort_keys=True, indent=4)
+            json.dump(raw_dict["seasons"][1], op, sort_keys=True, indent=4)
 
         return json_file_name
+
+    def _convert_conll_to_bio(self,conll_file):
+        with open(conll_file) as ip, open(conll_file.replace(".conll",".bio.conll"),"w") as op:
+            prev_referent = ""
+            start_found = False
+            end_found = False
+            for line in ip.readlines():
+                if line.strip() != "" and not line.startswith("#"):
+                    referent = line.strip().split()[-1]
+                    orig = line.strip().split()[-1] 
+                    if "(" in referent and ")" in referent:
+                        referent = "B-" + referent.replace("(","").replace(")","")
+                        start_found = False
+                        end_found = False
+                    elif not ("(" in referent and ")" in referent):
+                        if "(" in referent:
+                            start_found = True
+                            end_found = False
+                            prev_referent = referent.replace("(","")
+                            referent = "B-" + prev_referent 
+                        elif ")" in referent:
+                            end_found = True
+                            referent = "I-" + prev_referent
+                            prev_referent = ""
+                            
+                        if referent == "-":
+                            if start_found and not end_found:
+                                referent = "I-" + prev_referent
+                    op.write(line.strip() + "    "+referent+"\n")    
+                else:
+                    op.write(line)
+        return conll_file.replace(".conll",".bio.conll")            
 
     def _read_season(self, json_file):
         season = list()
@@ -138,7 +193,6 @@ class TranscriptCSVReader(object):
 	
         return season, utterance_mentions, statement_mentions
     
-
     def _parse_episode_json(self, episode_id, episode_json, utterance_mentions, statement_mentions):
         scenes = list()
         eid = int(episode_id)
@@ -232,8 +286,11 @@ class TranscriptCSVReader(object):
             pos_tag = pos_tags[idx] if pos_tags is not None else None
             ner_tag = ner_tags[idx] if ner_tags is not None else None
             dep_label = dep_labels[idx] if dep_labels is not None else None
-
-            nodes.append(TokenNode(int(idx+1), str(word_form), str(pos_tag), str(ner_tag), str(dep_label)))
+            try:
+                nodes.append(TokenNode(int(idx+1), str(word_form), str(pos_tag), str(ner_tag), str(dep_label)))
+            except:
+                import pdb
+                pdb.set_trace()
 
         # if dep_heads is not None:
         #     dep_heads = map(lambda x: int(x), dep_heads)
@@ -316,12 +373,19 @@ class GenderDataReader(object):
 
         return d
 
-'''
+
 import os
 for file in os.listdir("../data/"):
-    if "bio" in file and "scene_delim" in file and "conll" in file:
-        print file
-        json_file_name = TranscriptCSVReader.write_conll_to_json("../data/"+file)
-#        data = TranscriptCSVReader.read_season(json_file_name)
+    if file.startswith("bbt") and "bio" not in file and "json" not in file and "entity" not in file:
+        print "converting to bio {}".format(file)
+        bio_file_name = TranscriptCSVReader.convert_conll_to_bio("../data/"+file)
+        print "converting to json"
+        json_file_name = TranscriptCSVReader.write_conll_to_json("../data/"+bio_file_name,"bbt")
+        print "reading the json"
+        data = TranscriptCSVReader.read_season(open("../data/"+json_file_name))
 
-'''
+#     if "bio" in file and "scene_delim" in file and "conll" in file:
+#         print file
+#         json_file_name = TranscriptCSVReader.write_conll_to_json("../data/"+file)
+# #        data = TranscriptCSVReader.read_season(json_file_name)
+
