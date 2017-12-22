@@ -1,4 +1,4 @@
-from utils.readers import *
+from utils.csv_readers import *
 from utils.timer import Timer
 from utils.transcritps import *
 from components.features import *
@@ -15,21 +15,26 @@ data_in = [
     # ("../data/friends-s2.feats.json", filter(lambda x: x != 3, range(1, 22)), [22])
 ]
 
-word2gender_path = "../data/gender.data"
-word2vec_path = "../data/wiki_nyt_w2v_50d.bin"
+data_in = [("json/friends.train.season_1.scene_delim.bio.json",range(1,20),range(20,22)),
+	("json/friends.train.season_2.scene_delim.bio.json",range(1,20),range(20,22))
+]
+
+word2gender_path = "data/gender.data"
+#word2vec_path = "../data/wiki_nyt_w2v_50d.bin"
+word2vec_path = "/data_500_II/tensorflow_parallel_sentence/glove.6B.50d.w2vformat.txt"
 
 # Parameters ##############################################
 nb_m4entity = 5
 nb_filters = 80
 
-gpu_id = -1
+gpu_id = 1
 evalOnly = False
 nb_epoch = 200
 eval_every = 10
 batch_size = 128
 
 utid = int(Timer.now()) % 1e6
-model_out = "../learned_models/mm-cnn-mpair.1+2+3r.f%d.d50.f1+2.%d.m" % (nb_filters, utid)
+model_out = "learned_models/mm-cnn-mpair.1+2+3r.f%d.d50.f1+2.%d.m" % (nb_filters, utid)
 
 nb_emb_feats = embdim = dftdim = None
 ###########################################################
@@ -40,7 +45,7 @@ def main():
 
     #### Loading word2vec
     timer.start('load_word2vec')
-    word2vec = KeyedVectors.load_word2vec_format(word2vec_path, binary=True)
+    word2vec = KeyedVectors.load_word2vec_format(word2vec_path)
     print "Word2Vec data loaded w/ %d vocabularies of dimension %d - %.2fs" \
           % (len(word2vec.vocab), word2vec.syn0.shape[1], timer.end('load_word2vec'))
 
@@ -55,7 +60,7 @@ def main():
     speakers, pos_tags, dep_labels, ner_tags = (set(), set(), set(), set())
     for d_in in data_in:
         with open(d_in[0], 'r') as f:
-            season, _, mentions = TranscriptJsonReader.read_season(f)
+            season, mentions, _ = TranscriptCSVReader.read_season(f)
 
             speakers = speakers.union(TranscriptUtils.collect_speakers(season, False))
             pos_tags = pos_tags.union(TranscriptUtils.collect_pos_tags(season))

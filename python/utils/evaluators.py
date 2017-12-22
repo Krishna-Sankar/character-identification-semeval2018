@@ -25,11 +25,14 @@ class AbstractEvaluator(object):
 class BCubeEvaluator(AbstractEvaluator):
     def evaluate_docs(self, gold_cluster_docs, auto_cluster_docs):
         pc = rc = mc = 0
+	
         for gold_clusters, auto_clusters in zip(gold_cluster_docs, auto_cluster_docs):
             gold_m2c_map = self.create_mention2cluster_map(gold_clusters)
             auto_m2c_map = self.create_mention2cluster_map(auto_clusters)
             mentions = auto_m2c_map.keys()
-
+	    #print mentions
+	    #import pdb
+	    #p
             mc += len(mentions)
             for mention in mentions:
                 gold_cluster = gold_m2c_map.get(mention)
