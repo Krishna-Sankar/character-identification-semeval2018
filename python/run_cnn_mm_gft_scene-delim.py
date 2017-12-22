@@ -18,19 +18,26 @@ data_in = [("json/friends.train.season_1.scene_delim.bio.json",range(1,20),range
 word2gender_path = "data/gender.data"
 #word2vec_path = "../data/wiki_nyt_w2v_50d.bin"
 #word2vec_path = "/data_500_II/tensorflow_parallel_sentence/parSentExtract/notebooks/GoogleNews-vectors-negative300.bin"
-word2vec_path = "/data_500_II/tensorflow_parallel_sentence/glove.6B.50d.w2vformat.txt"
+word2vec_path = "data/wiki.en.vec"
+#word2vec_path = "/data_500_II/tensorflow_parallel_sentence/glove.6B.50d.w2vformat.txt"
 
 # Parameters ##############################################
 nb_filters = 80
 
 gpu_id = -1
-evalOnly = False
+evalOnly = True
 nb_epoch = 100
 eval_every = 10
 batch_size = 128
 
 utid = int(Timer.now()) % 1e6
+utid = 923707
 model_out = "learned_models/mm-cnn.1+2r.f%d.d50.f1+2.%d.m" % (nb_filters, utid)
+#model_out = "learned_models/mm-cnn.1+2r.f80.d50.f1+2.923707.m"
+
+#923707 - fasttext.
+#916676 - google
+#903358 - glove 
 
 nb_emb_feats = embdim = dftdim = None
 ###########################################################
